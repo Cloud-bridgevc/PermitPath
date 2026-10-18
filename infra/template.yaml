@@ -1,0 +1,174 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  PermitPath background infrastructure — document storage (S3 + KMS), extraction queue,
+  and scheduled Lambda jobs. The Next.js web app and the Aurora PostgreSQL cluster are
+  deployed separately and referenced here through parameters.
+
+Parameters:
+  Stage:
+    Type: String
+    AllowedValues: [dev, staging, prod]
+    Default: dev
+  DatabaseSecretArn:
+    Type: String
+    Description: Secrets Manager secret holding DATABASE_URL for the Aurora PostgreSQL cluster.
+  VpcSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+  VpcSecurityGroupIds:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+  BedrockModelId:
+    Type: String
+    Default: anthropic.claude-opus-5-5
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures: [arm64]
+    MemorySize: 1024
+    Timeout: 120
+    Tracing: Active
+    VpcConfig:
+      SubnetIds: !Ref VpcSubnetIds
+      SecurityGroupIds: !Ref VpcSecurityGroupIds
+    Environment:
+      Variables:
+        PERMITPATH_DOCS_BUCKET: !Ref DocumentsBucket
+        BEDROCK_ENABLED: "true"
+        BEDROCK_MODEL_ID: !Ref BedrockModelId
+        DATABASE_SECRET_ARN: !Ref DatabaseSecretArn
+        NODE_OPTIONS: --enable-source-maps
+
+Resources:
+  # ------------------------------------------------------------------ storage
+  DocumentsKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: PermitPath supporting documents and official source files
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AccountAdmin
+            Effect: Allow
+            Principal: { AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root" }
+            Action: kms:*
+            Resource: "*"
+
+  DocumentsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub permitpath-documents-${Stage}-${AWS::AccountId}
+      VersioningConfiguration: { Status: Enabled }
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: aws:kms, KMSMasterKeyID: !GetAtt DocumentsKey.Arn }
+            BucketKeyEnabled: true
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls: { Rules: [{ ObjectOwnership: BucketOwnerEnforced }] }
+      ObjectLockEnabled: false
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireOldVersions
+            Status: Enabled
+            NoncurrentVersionExpiration: { NoncurrentDays: 2555 } # retain prior versions ~7 years
+      NotificationConfiguration:
+        EventBridgeConfiguration: { EventBridgeEnabled: true }
+
+  DocumentsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DocumentsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource: [!GetAtt DocumentsBucket.Arn, !Sub "${DocumentsBucket.Arn}/*"]
+            Condition: { Bool: { aws:SecureTransport: "false" } }
+
+  # ------------------------------------------------------------------ extraction pipeline
+  ExtractionDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      KmsMasterKeyId: alias/aws/sqs
+
+  ExtractionQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 720
+      KmsMasterKeyId: alias/aws/sqs
+      RedrivePolicy: { deadLetterTargetArn: !GetAtt ExtractionDLQ.Arn, maxReceiveCount: 3 }
+
+  ExtractionWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: extraction-worker.handler
+      CodeUri: ../
+      Timeout: 600
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy: { SecretArn: !Ref DatabaseSecretArn }
+        - S3ReadPolicy: { BucketName: !Ref DocumentsBucket }
+        - KMSDecryptPolicy: { KeyId: !Ref DocumentsKey }
+        - Statement:
+            - Effect: Allow
+              # Verify the exact IAM actions for the Bedrock Mantle Messages endpoint in your
+              # region; scope Resource to the model / inference profile ARN you enable.
+              Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
+              Resource: "*"
+      Events:
+        Queue:
+          Type: SQS
+          Properties: { Queue: !GetAtt ExtractionQueue.Arn, BatchSize: 1, FunctionResponseTypes: [ReportBatchItemFailures] }
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties: { EntryPoints: [lambda/extraction-worker.ts], Format: esm, Target: node22, Minify: true, Sourcemap: true, External: ["pg-native"] }
+
+  # ------------------------------------------------------------------ scheduled jobs
+  RenewalReminders:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: renewal-reminders.handler
+      CodeUri: ../
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy: { SecretArn: !Ref DatabaseSecretArn }
+      Events:
+        Daily:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: cron(0 6 * * ? *)
+            ScheduleExpressionTimezone: UTC
+            RetryPolicy: { MaximumRetryAttempts: 2 }
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties: { EntryPoints: [lambda/renewal-reminders.ts], Format: esm, Target: node22, Minify: true, External: ["pg-native"] }
+
+  SourceReverification:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: source-reverification.handler
+      CodeUri: ../
+      Environment:
+        Variables: { REVERIFY_AFTER_DAYS: "90" }
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy: { SecretArn: !Ref DatabaseSecretArn }
+      Events:
+        Weekly:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: cron(0 7 ? * MON *)
+            ScheduleExpressionTimezone: UTC
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties: { EntryPoints: [lambda/source-reverification.ts], Format: esm, Target: node22, Minify: true, External: ["pg-native"] }
+
+Outputs:
+  DocumentsBucketName: { Value: !Ref DocumentsBucket }
+  ExtractionQueueUrl: { Value: !Ref ExtractionQueue }
