@@ -11,6 +11,7 @@ const links = [
   { href: "/demo", label: "Checklist demo" },
   { href: "/pricing", label: "Pricing" },
   { href: "/faq", label: "FAQ" },
+  { href: "/#team", label: "Team" },
 ];
 
 export function SiteNav() {

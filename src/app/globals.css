@@ -344,3 +344,7 @@ details.faq p { margin: 12px 0 0; color: var(--ink-2); }
   .site-menu a:last-child { border-bottom: 0; }
 }
 @media (max-width: 380px) { .nav-actions .btn-primary { padding: 0 12px; font-size: 13px; } }
+.social-link { display: inline-flex; align-items: center; gap: 8px; color: #c5d3e6; font-weight: 500; }
+.social-link:hover { color: #fff; text-decoration: none; }
+.team-card { display: flex; gap: 16px; align-items: center; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
+.avatar { width: 56px; height: 56px; border-radius: 50%; flex: none; display: grid; place-items: center; font-weight: 700; font-size: 18px; color: #fff; background: linear-gradient(135deg, var(--navy-800), var(--teal-600)); }

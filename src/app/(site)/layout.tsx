@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { LogoMark } from "@/components/icons";
+import { IconLinkedIn, LogoMark } from "@/components/icons";
+import { LINKEDIN_URL, SITE_DOMAIN } from "@/lib/site";
 import { SiteNav } from "./site-nav";
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
@@ -13,6 +14,9 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             <div>
               <div className="logo" style={{ color: "#fff" }}><LogoMark />PermitPath</div>
               <p style={{ marginTop: 12 }}>Permit application management and regulatory workflow for businesses and permit consultants.</p>
+              <a href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer" className="social-link" aria-label="PermitPath on LinkedIn">
+                <IconLinkedIn width={18} height={18} /> LinkedIn
+              </a>
             </div>
             <div>
               <h4>Product</h4>
@@ -24,7 +28,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             </div>
             <div>
               <h4>Company</h4>
-              <div className="stack-sm"><div><Link href="/faq">FAQ</Link></div><div><Link href="/request-demo">Contact sales</Link></div></div>
+              <div className="stack-sm"><div><Link href="/#team">Team</Link></div><div><Link href="/faq">FAQ</Link></div><div><Link href="/request-demo">Contact sales</Link></div></div>
             </div>
           </div>
           <hr style={{ borderColor: "rgba(255,255,255,.1)" }} />
@@ -33,6 +37,9 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             your team approves, with jurisdiction and verification dates displayed. Always confirm requirements with the issuing authority. All jurisdictions, businesses and
             sources on this website and in the demo workspace are fictional.
           </p>
+          <div className="xs" style={{ marginTop: 18 }}>
+            <span>© {new Date().getFullYear()} PermitPath · {SITE_DOMAIN}</span>
+          </div>
         </div>
       </footer>
     </>

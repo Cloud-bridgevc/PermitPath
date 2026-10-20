@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LINKEDIN_URL, TEAM } from "@/lib/site";
 import {
   IconArrow, IconBell, IconCheck, IconClipboard, IconFile, IconLayers, IconScan, IconSearch, IconShield, IconSparkle, IconX, IconAlert,
 } from "@/components/icons";
@@ -136,6 +137,27 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="section section-alt" id="team">
+        <div className="container">
+          <div className="eyebrow">Team</div>
+          <h2 className="display">The people building PermitPath.</h2>
+          <div className="grid-2" style={{ marginTop: 32, maxWidth: 820 }}>
+            {TEAM.map((m) => (
+              <div key={m.name} className="team-card">
+                <div className="avatar" aria-hidden="true">{m.name.split(" ").map((w) => w[0]).join("")}</div>
+                <div>
+                  <h3 style={{ margin: 0 }}>{m.name}</h3>
+                  <div className="muted small">{m.role}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="small muted" style={{ marginTop: 24 }}>
+            Follow PermitPath on <a href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer">LinkedIn</a>, or <Link href="/request-demo">get in touch</Link>.
+          </p>
         </div>
       </section>
 
