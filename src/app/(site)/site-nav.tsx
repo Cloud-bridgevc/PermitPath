@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { LogoMark } from "@/components/icons";
 
 const links = [
+  { href: "/#problem", label: "Problem" },
   { href: "/#platform", label: "Platform" },
   { href: "/use-cases", label: "Use cases" },
   { href: "/demo", label: "Checklist demo" },

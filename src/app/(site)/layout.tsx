@@ -28,7 +28,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             </div>
             <div>
               <h4>Company</h4>
-              <div className="stack-sm"><div><Link href="/#team">Team</Link></div><div><Link href="/faq">FAQ</Link></div><div><Link href="/request-demo">Contact sales</Link></div></div>
+              <div className="stack-sm"><div><Link href="/#team">Team</Link></div><div><Link href="/faq">FAQ</Link></div><div><Link href="/request-demo">Contact sales</Link></div><div><Link href="/privacy">Privacy</Link></div><div><Link href="/terms">Terms</Link></div></div>
             </div>
           </div>
           <hr style={{ borderColor: "rgba(255,255,255,.1)" }} />
@@ -38,7 +38,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             sources on this website and in the demo workspace are fictional.
           </p>
           <div className="xs" style={{ marginTop: 18 }}>
-            <span>© {new Date().getFullYear()} PermitPath · {SITE_DOMAIN}</span>
+            <span>© {new Date().getFullYear()} PermitPath · {SITE_DOMAIN} · Founded by Friday Bonny (Founder/CEO) &amp; Goodluck Edet (Co-founder/CTO)</span>
           </div>
         </div>
       </footer>

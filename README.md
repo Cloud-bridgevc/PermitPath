@@ -53,3 +53,15 @@ DATABASE_URL=... node --experimental-strip-types tests/postgres.integration.ts
 3. **/app/assistant** — ask a question; answers cite approved sources with effective and last-verified dates. Ask about a fee and see it decline.
 4. **/app/extraction** — a revised (pending) source produced two candidates; one failed the grounding check and can't be accepted.
 5. **/app/renewals** — calendar of recorded expirations and configured reminders.
+
+## Launch readiness (glow-up)
+
+- Home page: problem section with three sourced statistics, what-we-solve, comparison table, AI section, founder cards and roadmap, with scroll-reveal motion that respects reduced motion. Sections live in `src/components/Glow.tsx` (generated markup), styles in `src/app/glow.css`, motion in `public/glow.js`.
+- New routes: `/privacy`, `/terms` (review drafts). Footer credits the founders.
+- Ship assets: `opengraph-image.png`, `twitter-image.png`, `apple-icon.png`, `icon.svg`, `public/manifest.webmanifest`, icons, founders JSON-LD; sitemap includes the new routes.
+
+### Content to confirm before launch
+- Contact email `hello@permitpath.site` is a placeholder — create the forward or replace it.
+- Statistics (U.S. Chamber Small Business Index Q4 2024; NAHB 2021) — re-check figures and links.
+- Founder bios describe roles only; replace with confirmed biographies.
+- Privacy notice and terms need operator details and governing law.
